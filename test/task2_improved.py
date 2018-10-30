@@ -143,6 +143,9 @@ if __name__ == "__main__":
 
     moveToTheStartingPosition(q_map_starting)
 
+    moveTorso(1.56, "left")
+    moveTorso(-1.56, "right")
+
     moveHead(0.0,0.2,"down")
 
     moveTorso(1.56, "left")

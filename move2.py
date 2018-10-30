@@ -48,10 +48,10 @@ if __name__ == "__main__":
     print "Reading octomap to planner"
     p = Planner(velma.maxJointTrajLen())
     p.waitForInit()
-    oml = OctomapListener("/octomap_binary")
+    #oml = OctomapListener("/octomap_binary")
     rospy.sleep(1.0)
-    octomap = oml.getOctomap(timeout_s=5.0)
-    p.processWorld(octomap)
+    #octomap = oml.getOctomap(timeout_s=5.0)
+    #p.processWorld(octomap)
     # planning...
 
     diag = velma.getCoreCsDiag()
@@ -142,24 +142,24 @@ if __name__ == "__main__":
     if velma.waitForEffectorLeft() != 0:
         exitError(9)
 #----------------------------------------------------------------------------------------------
-    T_B_Beer = velma.getTf("B", "beer")
+    #T_B_Beer = velma.getTf("B", "beer")
     planAndExecute(q_map_starting)
 	
     # cwiartka 1
-    if T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() >= 0:
-        angle = 1.56
+    #if T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() >= 0:
+    #    angle = 1.56
     # cwiartka 2
-    elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() >= 0:
-        angle = -1.56
+    #elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() >= 0:
+   #     angle = -1.56
     # cwiartka 3
-    elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() < 0:
-        angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
+    #elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() < 0:
+     #   angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
     # cwiartka 4
-    elif T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() < 0:
-        angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
+    #elif T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() < 0:
+     #   angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
 
     
-    q_map_starting['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
+    #q_map_starting['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
 
     planAndExecute(q_map_1)
     rospy.sleep(5)

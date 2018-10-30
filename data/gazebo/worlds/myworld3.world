@@ -10,7 +10,7 @@
     <gravity>0 0 -9.8</gravity>
     <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
     <atmosphere type='adiabatic'/>
-     <physics name='dart_2ms' default='1' type='dart'>
+    <physics name='dart_2ms' default='1' type='ode'>
       <max_step_size>0.002</max_step_size>
       <real_time_factor>1</real_time_factor>
       <real_time_update_rate>500</real_time_update_rate>
@@ -374,23 +374,23 @@
     <state world_name='default'>
       <sim_time>0 0</sim_time>
       <real_time>0 0</real_time>
-      <wall_time>1540764881 737069823</wall_time>
+      <wall_time>1540890910 507945313</wall_time>
       <iterations>0</iterations>
       <model name='beer'>
-        <pose frame=''>1.22585 -0.081841 1.0887 0 -0 0</pose>
+        <pose frame=''>0.922932 -0.001005 1.0887 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.22585 -0.081841 1.2037 0 -0 0</pose>
+          <pose frame=''>0.922932 -0.001005 1.2037 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
       <model name='cafe_table'>
-        <pose frame=''>0.027529 1.26765 0 0 -0 0</pose>
+        <pose frame=''>0.027529 1.07033 0 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.027529 1.26765 0 0 -0 0</pose>
+          <pose frame=''>0.027529 1.07033 0 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -407,10 +407,10 @@
         </link>
       </model>
       <model name='table'>
-        <pose frame=''>1.33605 -0.669848 0 0 -0 1.41953</pose>
+        <pose frame=''>1.02269 -0.622082 0 0 -0 1.41953</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.33605 -0.669848 0 0 -0 1.41953</pose>
+          <pose frame=''>1.02269 -0.622082 0 0 -0 1.41953</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -425,7 +425,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>3.5012 2.00242 3.71123 0 0.623644 -2.6078</pose>
+        <pose frame=''>5.0769 0.17722 4.03661 0 0.635644 -2.8278</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

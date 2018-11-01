@@ -108,19 +108,6 @@ if __name__ == "__main__":
     if velma.enableMotors() != 0:
         exitError(14)
 
-    print "Switch to jnt_imp mode (no trajectory)..."
-    velma.moveJointImpToCurrentPos(start_time=0.2)
-    error = velma.waitForJoint()
-    if error != 0:
-        print "The action should have ended without error, but the error code is", error
-        exitError(3)
-
-    rospy.sleep(0.5)
-    diag = velma.getCoreCsDiag()
-    if not diag.inStateJntImp():
-        print "The core_cs should be in jnt_imp state, but it is not"
-        exitError(3)
-
 
     print "Switch to cart_imp mode (no trajectory)..."
     if not velma.moveCartImpRightCurrentPos(start_time=0.2):
@@ -177,9 +164,17 @@ if __name__ == "__main__":
 
     rospy.sleep(0.5)
 
+    if T_B_Beer.p.x() >= 0:
+        x = T_B_Beer.p.x() - 0.27*math.cos(angle)
+        y = T_B_Beer.p.y() - 0.27*math.sin(angle)
+    else:
+        x = 0.4
+        y = 0.4
+        print "Nieobslugiwany przypadek"
+
 
     print "Moving right wrist to pose defined in world frame..."
-    T_B_Trd = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector( T_B_Beer.p.x() , T_B_Beer.p.y() , T_B_Beer.p.z() ))
+    T_B_Trd = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector(x, y, T_B_Beer.p.z()+0.1))
     if not velma.moveCartImpRight([T_B_Trd], [3.0], None, None, None, None, PyKDL.Wrench(PyKDL.Vector(5,5,5), PyKDL.Vector(5,5,5)), start_time=0.5):
         exitError(8)
     if velma.waitForEffectorRight() != 0:

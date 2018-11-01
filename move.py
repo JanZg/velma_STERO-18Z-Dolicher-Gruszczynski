@@ -22,13 +22,13 @@ if __name__ == "__main__":
         'right_arm_6_joint':0,      'left_arm_6_joint':0 }
 
     q_map_1 = {'torso_0_joint':0,
-        'right_arm_0_joint':-0.45,   'left_arm_0_joint':0.3,
-        'right_arm_1_joint':-1.98,   'left_arm_1_joint':1.8,
-        'right_arm_2_joint':1.52,   'left_arm_2_joint':-1.25,
-        'right_arm_3_joint':2.00,   'left_arm_3_joint':-0.85,
-        'right_arm_4_joint':-0.03,      'left_arm_4_joint':0,
-        'right_arm_5_joint':-2.00,   'left_arm_5_joint':0.5,
-        'right_arm_6_joint':0,      'left_arm_6_joint':0 }
+        'right_arm_0_joint': 0.282,   'left_arm_0_joint':0.3,
+        'right_arm_1_joint': -1.814,   'left_arm_1_joint':1.8,
+        'right_arm_2_joint': 1.184,   'left_arm_2_joint':-1.25,
+        'right_arm_3_joint': 2.00,   'left_arm_3_joint':-0.85,
+        'right_arm_4_joint': 0.0,      'left_arm_4_joint':0,
+        'right_arm_5_joint': -1.669,   'left_arm_5_joint':0.5,
+        'right_arm_6_joint': -0.51,      'left_arm_6_joint':0 }
 
     rospy.init_node('test_cimp_pose')
 
@@ -44,6 +44,25 @@ if __name__ == "__main__":
         print "Could not initialize VelmaInterface\n"
         exitError(1)
     print "Initialization ok!\n"
+
+    print "Motors must be enabled every time after the robot enters safe state."
+    print "If the motors are already enabled, enabling them has no effect."
+    print "Enabling motors..."
+    if velma.enableMotors() != 0:
+        exitError(14)
+
+    print "Also, head motors must be homed after start-up of the robot."
+    print "Sending head pan motor START_HOMING command..."
+    velma.startHomingHP()
+    if velma.waitForHP() != 0:
+        exitError(14)
+    print "Head pan motor homing successful."
+
+    print "Sending head tilt motor START_HOMING command..."
+    velma.startHomingHT()
+    if velma.waitForHT() != 0:
+        exitError(15)
+    print "Head tilt motor homing successful."
 
     print "Reading octomap to planner"
     p = Planner(velma.maxJointTrajLen())
@@ -102,20 +121,6 @@ if __name__ == "__main__":
         print "The core_cs should be in jnt_imp state, but it is not"
         exitError(3)
 
-    planAndExecute(q_map_starting)
-
-    print "Checking if the starting configuration is as expected..."
-    rospy.sleep(0.5)
-    js = velma.getLastJointState()
-    if not isConfigurationClose(q_map_starting, js[1], tolerance=0.2):
-        print "This test requires starting pose:"
-        print q_map_starting
-        exitError(10)
-
-    # get initial configuration
-    js_init = velma.getLastJointState()
-
-#    planAndExecute(q_map_1)
 
     print "Switch to cart_imp mode (no trajectory)..."
     if not velma.moveCartImpRightCurrentPos(start_time=0.2):
@@ -143,26 +148,48 @@ if __name__ == "__main__":
         exitError(9)
 #----------------------------------------------------------------------------------------------
     T_B_Beer = velma.getTf("B", "beer")
-    planAndExecute(q_map_starting)
+    #planAndExecute(q_map_starting)
 	
     # cwiartka 1
-    if T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() >= 0:
-        angle = 1.56
+    if T_B_Beer.p.x() > 0 and T_B_Beer.p.y() >= 0:
+        angle = math.atan(T_B_Beer.p.y()/T_B_Beer.p.x())
     # cwiartka 2
-    elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() >= 0:
-        angle = -1.56
+    elif T_B_Beer.p.x() <= 0 and T_B_Beer.p.y() >= 0:
+        angle = 1.56
     # cwiartka 3
-    elif T_B_Beer.p.x() < 0 and T_B_Beer.p.y() < 0:
-        angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
+    elif T_B_Beer.p.x() <= 0 and T_B_Beer.p.y() < 0:
+        angle = -1.56
     # cwiartka 4
-    elif T_B_Beer.p.x() >= 0 and T_B_Beer.p.y() < 0:
-        angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
+    elif T_B_Beer.p.x() > 0 and T_B_Beer.p.y() < 0:
+        angle = math.atan(T_B_Beer.p.y()/T_B_Beer.p.x())
 
     
     q_map_1['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
 
 
     planAndExecute(q_map_1)
+
+    print "Switch to cart_imp mode (no trajectory)..."
+    if not velma.moveCartImpRightCurrentPos(start_time=0.2):
+        exitError(8)
+    if velma.waitForEffectorRight() != 0:
+        exitError(9)
+
+    rospy.sleep(0.5)
+
+
+    print "Moving right wrist to pose defined in world frame..."
+    T_B_Trd = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector( T_B_Beer.p.x() , T_B_Beer.p.y() , T_B_Beer.p.z() ))
+    if not velma.moveCartImpRight([T_B_Trd], [3.0], None, None, None, None, PyKDL.Wrench(PyKDL.Vector(5,5,5), PyKDL.Vector(5,5,5)), start_time=0.5):
+        exitError(8)
+    if velma.waitForEffectorRight() != 0:
+        exitError(9)
+    rospy.sleep(0.5)
+    print "calculating difference between desiread and reached pose..."
+    T_B_T_diff = PyKDL.diff(T_B_Trd, velma.getTf("B", "Tr"), 1.0)
+    print T_B_T_diff
+    if T_B_T_diff.vel.Norm() > 0.1 or T_B_T_diff.rot.Norm() > 0.1:
+        exitError(10)
 
     exitError(0)
 

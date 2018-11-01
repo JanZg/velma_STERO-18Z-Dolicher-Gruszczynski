@@ -25,9 +25,9 @@ if __name__ == "__main__":
         'right_arm_0_joint':-0.45,   'left_arm_0_joint':0.3,
         'right_arm_1_joint':-1.98,   'left_arm_1_joint':1.8,
         'right_arm_2_joint':1.52,   'left_arm_2_joint':-1.25,
-        'right_arm_3_joint':2.09,   'left_arm_3_joint':-0.85,
+        'right_arm_3_joint':2.00,   'left_arm_3_joint':-0.85,
         'right_arm_4_joint':-0.03,      'left_arm_4_joint':0,
-        'right_arm_5_joint':-2.09,   'left_arm_5_joint':0.5,
+        'right_arm_5_joint':-2.00,   'left_arm_5_joint':0.5,
         'right_arm_6_joint':0,      'left_arm_6_joint':0 }
 
     rospy.init_node('test_cimp_pose')
@@ -159,11 +159,10 @@ if __name__ == "__main__":
         angle = math.atan(T_B_Beer.p.x()/abs(T_B_Beer.p.y()))
 
     
-    q_map_starting['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
+    q_map_1['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
+
 
     planAndExecute(q_map_1)
-    rospy.sleep(5)
-    planAndExecute(q_map_starting)
 
     exitError(0)
 

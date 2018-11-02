@@ -254,11 +254,11 @@ if __name__ == "__main__":
 
     # Wybor punktow odkladania puszki w oparciu o dopasowanie do wymiarow stolu
     gamma = alpha - beta
-    const = math.atan(1.0/1.2) # kat wynikajacy ze stosuneku wymiarow stolu
+    const = math.atan(0.95/1.15) # kat wynikajacy ze stosuneku wymiarow stolu
     if (gamma <= const and gamma >= -const) or gamma <= -2*math.pi + const or gamma >= math.pi - const or (gamma <= -math.pi + const and gamma >=-math.pi - const):
-        z = math.fabs(1.2/math.cos(math.fabs(gamma)))
+        z = math.fabs(1.15/math.cos(math.fabs(gamma)))
     elif (gamma >= const and gamma <= math.pi -const) or (gamma <=-const and gamma >= -math.pi + const) or(gamma <= -math.pi-const and gamma >= -2*math.pi+ const):
-        z = math.fabs(1.0/math.sin(math.fabs(gamma)))
+        z = math.fabs(0.95/math.sin(math.fabs(gamma)))
  
 
     # Wyznaczanie kata obrotu korpusu
@@ -346,7 +346,7 @@ if __name__ == "__main__":
         print "Puszka chwycona"
 
     print "Wycofywanie reki"
-    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector(posX - 0.15*math.cos(alpha), posY- 0.15*math.sin(alpha), T_B_Table.p.z()+0.1+0.64))
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX - 0.15*math.cos(alpha), posY- 0.15*math.sin(alpha), T_B_Table.p.z()+0.1+0.64))
     moveWristToPos(frame)
 
     print "Powrot do pozycji poczatkowej"

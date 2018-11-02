@@ -48,7 +48,7 @@ from rcprg_ros_utils import exitError
 
 if __name__ == "__main__":
     # define some configurations
-    q_map_starting = {'torso_0_joint':0, 'right_arm_0_joint':-0.3, 'right_arm_1_joint':-1.8,
+    q_map_1 = {'torso_0_joint':0, 'right_arm_0_joint':-0.3, 'right_arm_1_joint':-1.8,
         'right_arm_2_joint':1.25, 'right_arm_3_joint':0.85, 'right_arm_4_joint':0, 'right_arm_5_joint':-0.5,
         'right_arm_6_joint':0, 'left_arm_0_joint':0.3, 'left_arm_1_joint':1.8, 'left_arm_2_joint':-1.25,
         'left_arm_3_joint':-0.85, 'left_arm_4_joint':0, 'left_arm_5_joint':0.5, 'left_arm_6_joint':0 }
@@ -92,31 +92,48 @@ if __name__ == "__main__":
         exitError(15)
     print "Head tilt motor homing successful."
 
-    print "Switch to cart_imp mode (no trajectory)..."
-    if not velma.moveCartImpRightCurrentPos(start_time=0.2):
-        exitError(8)
-    if velma.waitForEffectorRight() != 0:
-        exitError(9)
+    print "Pobieranie pozycji drugiego stolu oraz wyznaczanie kata obrotu"
+    T_B_Table = velma.getTf("B", "table_2")
+    (rotX, rotY, rotZ) = T_B_Table.M.GetRPY()
+    # Wyznaczanie kata obrotu stolu (stol jes symetryczny wiec do opisania go wystarczy tylko obrot od 0 do pi)
+    if rotZ < 0:
+        beta = math.pi + rotZ
+    else:
+        beta = rotZ
 
-    rospy.sleep(0.5)
+    # Wyznaczanie kata ustawienia stolu wzgledem ukladu bazy
+    if T_B_Table.p.x() >= 0:
+        alpha = math.atan(T_B_Table.p.y() / (T_B_Table.p.x() + 0.01))
+    else:
+        if T_B_Table.p.y() >= 0:
+            alpha = math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
+        else:
+            alpha = -math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
 
+    # Wybor punktow odkladania puszki w oparciu o dopasowanie do wymiarow stolu
+    gamma = alpha - beta
+    print "Gamma: ", gamma
+    const = math.atan(0.9/1.1) # kat wynikajacy ze stosuneku wymiarow stolu
+    if (gamma <= const and gamma >= -const) or gamma <= -2*math.pi + const or gamma >= math.pi - const or (gamma <= -math.pi + const and gamma >=-math.pi - const):
+        z = math.fabs(1.1/math.cos(math.fabs(gamma)))
+    elif (gamma >= const and gamma <= math.pi -const) or (gamma <=-const and gamma >= -math.pi + const) or(gamma <= -math.pi-const and gamma >= -2*math.pi+ const):
+        z = math.fabs(0.9/math.sin(math.fabs(gamma)))
+ 
+    print "Z: ", z
 
-    print "Moving right wrist to pose defined in world frame..."
-    T_B_Trd = PyKDL.Frame(PyKDL.Rotation.RPY(0, -0.1, -0.2), PyKDL.Vector( 0.25 , -0.25 , 1.3 ))
-    if not velma.moveCartImpRight([T_B_Trd], [3.0], None, None, None, None, PyKDL.Wrench(PyKDL.Vector(5,5,5), PyKDL.Vector(5,5,5)), start_time=0.5):
-        exitError(8)
-    if velma.waitForEffectorRight() != 0:
-        exitError(9)
-    rospy.sleep(0.5)
-    print "calculating difference between desiread and reached pose..."
-    T_B_T_diff = PyKDL.diff(T_B_Trd, velma.getTf("B", "Tr"), 1.0)
-    print T_B_T_diff
-    if T_B_T_diff.vel.Norm() > 0.1 or T_B_T_diff.rot.Norm() > 0.1:
-        exitError(10)
+    # Wyznaczanie kata obrotu korpusu
+    if alpha >= math.pi:
+        q_map_1['torso_0_joint'] = 1.56;
+    elif alpha <= -math.pi:
+        q_map_1['torso_0_joint'] = -1.56;
+    else:
+        q_map_1['torso_0_joint'] = alpha;
+    print "kat: ", alpha
 
+    posX = T_B_Table.p.x() - 0.25*math.cos(alpha) - z*math.cos(alpha) 
+    posY = T_B_Table.p.y() - 0.25*math.sin(alpha) - z*math.sin(alpha)
 
-    js = velma.getLastJointState()
-    print js
+    print "posX: ", posX, "posY: ", posY
 
 
     exitError(0)

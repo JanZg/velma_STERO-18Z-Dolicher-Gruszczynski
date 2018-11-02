@@ -83,7 +83,7 @@ if __name__ == "__main__":
     def planAndExecute(q_dest):
         print "Planning motion to the goal position using set of all joints..."
         print "Moving to valid position, using planned trajectory."
-        goal_constraint = qMapToConstraints(q_dest, 0.01, group=velma.getJointGroup("impedance_joints"))
+        goal_constraint = qMapToConstraints(q_dest, 0.03, group=velma.getJointGroup("impedance_joints"))
         for i in range(20):
             rospy.sleep(0.5)
             js = velma.getLastJointState()
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     q_map_1['torso_0_joint'] = angle; # slownik ustawimay torso na 0    
 
 
-    planAndExecute(q_map_1)
+    planAndExecute(q_map_1)  # Ustawianie sie przodem do puszki z jednoczesnym podnoszeniem prawej reki nad stoly
 
     print "Switch to cart_imp mode (no trajectory)..."
     if not velma.moveCartImpRightCurrentPos(start_time=0.2):
@@ -164,13 +164,22 @@ if __name__ == "__main__":
 
     rospy.sleep(0.5)
 
-    if T_B_Beer.p.x() >= 0:
+    # Wyliczanie pozycji nadgarstka (nadgarstek bedzie ustawiony rownolegle do prostej przechodzacej przez srodki korpusu i puszki)
+    # Musi byc on takze nieco oddalony od puszki (funckja do poruszania reka przyjmuje pozycje nadgarstka a nie samej koncowki)
+
+    if T_B_Beer.p.x() >= 0:                               # W tym przypadku kat do ktorego ma sie obrocic nadgarstek jest taki sam jak poczatkowy kat obrotu korpusu
         x = T_B_Beer.p.x() - 0.27*math.cos(angle)
         y = T_B_Beer.p.y() - 0.27*math.sin(angle)
-    else:
-        x = 0.4
-        y = 0.4
-        print "Nieobslugiwany przypadek"
+    else:  # Przestrzen za robotem
+        angle = math.atan(T_B_Beer.p.y()/T_B_Beer.p.x())  # Wyliczanie kata do obliczenia wartosci funkcji sin i cos
+        x = T_B_Beer.p.x() + 0.27*math.cos(angle)
+        y = T_B_Beer.p.y() + 0.27*math.sin(angle)
+        if T_B_Beer.p.y() >=0:    # Wyliczanie kata do jakiego ma sie obrocic nadgartek robot (jak ma byc obrocony wzgledem bazy)
+            angle = 3.14 + angle
+        else:
+            angle = -3.14 + angle
+
+    
 
 
     print "Moving right wrist to pose defined in world frame..."

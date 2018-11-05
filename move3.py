@@ -22,7 +22,7 @@ class MarkerPublisherThread:
     def threaded_function(self, obj):
         pub = MarkerPublisher("attached_objects")
         while not self.stop_thread:
-            pub.publishSinglePointMarker(PyKDL.Vector(), 1, r=1, g=0, b=0, a=1, namespace='default', frame_id=obj.link_name, m_type=Marker.CYLINDER, scale=Vector3(0.02, 0.02, 1.0), T=pm.fromMsg(obj.object.primitive_poses[0]))
+            pub.publishSinglePointMarker(PyKDL.Vector(), 1, r=1, g=0, b=0, a=1, namespace='default', frame_id=obj.link_name, m_type=Marker.CYLINDER, scale=Vector3(0.06, 0.06, 0.23), T=pm.fromMsg(obj.object.primitive_poses[0]))
             try:
                 rospy.sleep(0.1)
             except:
@@ -78,7 +78,7 @@ if __name__ == "__main__":
             rospy.sleep(0.5)
             js = velma.getLastJointState()
             print "Planning (try", i, ")..."
-            traj = p.plan(js[1], [goal_constraint], "impedance_joints", max_velocity_scaling_factor=0.15, planner_id="RRTConnect")
+            traj = p.plan(js[1], [goal_constraint], "impedance_joints", max_velocity_scaling_factor=0.10, planner_id="RRTConnect")
             if traj == None:
                 continue
             print "Executing trajectory..."
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     # planning...
 
     #print "Planning motion to the starting position using set of all joints..."   
-    #planAndExecute(q_map_starting)
+    planAndExecute(q_map_starting)
 
     print "Switch to cart_imp mode..."
     switchToCartImp()
@@ -212,17 +212,17 @@ if __name__ == "__main__":
         angle = math.atan(T_B_Beer.p.y()/T_B_Beer.p.x())  # Wyliczanie kata do obliczenia wartosci funkcji sin i cos
         x = T_B_Beer.p.x() + 0.27*math.cos(angle)
         y = T_B_Beer.p.y() + 0.27*math.sin(angle)
-        if T_B_Beer.p.y() >=0:    # Wyliczanie kata do jakiego ma sie obrocic nadgartek robot (jak ma byc obrocony wzgledem bazy)
-            angle = 90.0/180.0*math.pi + angle
-        else:
+        if T_B_Beer.p.y() >=0:    # Wyliczanie kata do jakiego ma sie obrocic nadgarstek robot (jak ma byc obrocony wzgledem bazy)
             angle = -90.0/180.0*math.pi + angle
+        else:
+            angle = 90.0/180.0*math.pi + angle
 
     print "Ruch do puszki..."
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector(x, y, T_B_Beer.p.z()+0.1))
     moveWristToPos(frame)
 
     print "Chwytanie puszki..."
-    dest_q = [90.0/180.0*math.pi,90.0/180.0*math.pi,90.0/180.0*math.pi,0]
+    dest_q = [75.0/180.0*math.pi,75.0/180.0*math.pi,75.0/180.0*math.pi,0]
     velma.moveHandRight(dest_q, [1,1,1,1], [2000,2000,2000,2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
@@ -235,42 +235,56 @@ if __name__ == "__main__":
     moveWristToPos(frame)
 
     print "Pobieranie pozycji drugiego stolu oraz wyznaczanie kata obrotu"
-    T_B_Table = velma.getTf("B", "table_2")
-    (rotX, rotY, rotZ) = T_B_Table.M.GetRPY()
-    # Wyznaczanie kata obrotu stolu (stol jes symetryczny wiec do opisania go wystarczy tylko obrot od 0 do pi)
-    if rotZ < 0:
-        beta = math.pi + rotZ
+    Table1 = velma.getTf("B", "table_1")
+    Table2 = velma.getTf("B", "table_2")
+    if math.sqrt(math.pow(T_B_Beer.p.x() - Table1.p.x(), 2) + math.pow(T_B_Beer.p.y() - Table1.p.y(),2)) > math.sqrt(math.pow(T_B_Beer.p.x() - Table2.p.x(), 2) + math.pow(T_B_Beer.p.y() - Table2.p.y(),2)):
+        New_Table = Table1
+        Table_x = 1.35
+        Table_y = 0.65
     else:
-        beta = rotZ
-
-    # Wyznaczanie kata ustawienia stolu wzgledem ukladu bazy
-    if T_B_Table.p.x() >= 0:
-        alpha = math.atan(T_B_Table.p.y() / (T_B_Table.p.x() + 0.001))
-    else:
-        if T_B_Table.p.y() >= 0:
-            alpha = math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
+        New_Table = PyKDL.Frame(Table2.M, PyKDL.Vector(Table2.p.x(), Table2.p.y(), Table2.p.z() + 0.4))
+        Table_x = 1.15
+        Table_y = 0.95
+         
+    def calculatePosition(T_B_Table, x, y):
+        (rotX, rotY, rotZ) = T_B_Table.M.GetRPY()
+        # Wyznaczanie kata obrotu stolu (stol jes symetryczny wiec do opisania go wystarczy tylko obrot od 0 do pi)
+        if rotZ < 0:
+            beta = math.pi + rotZ
         else:
-            alpha = -math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
+            beta = rotZ
 
-    # Wybor punktow odkladania puszki w oparciu o dopasowanie do wymiarow stolu
-    gamma = alpha - beta
-    const = math.atan(0.95/1.15) # kat wynikajacy ze stosuneku wymiarow stolu
-    if (gamma <= const and gamma >= -const) or gamma <= -2*math.pi + const or gamma >= math.pi - const or (gamma <= -math.pi + const and gamma >=-math.pi - const):
-        z = math.fabs(1.15/math.cos(math.fabs(gamma)))
-    elif (gamma >= const and gamma <= math.pi -const) or (gamma <=-const and gamma >= -math.pi + const) or(gamma <= -math.pi-const and gamma >= -2*math.pi+ const):
-        z = math.fabs(0.95/math.sin(math.fabs(gamma)))
+        # Wyznaczanie kata ustawienia stolu wzgledem ukladu bazy
+        if T_B_Table.p.x() >= 0:
+            alpha = math.atan(T_B_Table.p.y() / (T_B_Table.p.x() + 0.001))
+        else:
+            if T_B_Table.p.y() >= 0:
+                alpha = math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
+            else:
+                alpha = -math.pi + math.atan(T_B_Table.p.y() / T_B_Table.p.x())
+
+        # Wybor punktow odkladania puszki w oparciu o dopasowanie do wymiarow stolu
+        gamma = alpha - beta
+        const = math.atan(y/x) # kat wynikajacy ze stosuneku wymiarow stolu
+        if (gamma <= const and gamma >= -const) or gamma <= -2*math.pi + const or gamma >= math.pi - const or (gamma <= -math.pi + const and gamma >=-math.pi - const):
+            z = math.fabs(x/math.cos(math.fabs(gamma)))
+        elif (gamma >= const and gamma <= math.pi -const) or (gamma <=-const and gamma >= -math.pi + const) or(gamma <= -math.pi-const and gamma >= -2*math.pi+ const):
+            z = math.fabs(y/math.sin(math.fabs(gamma)))
  
 
-    # Wyznaczanie kata obrotu korpusu
-    if alpha >= 1.56:
-        q_map_1['torso_0_joint'] = 1.56;
-    elif alpha <= -1.56:
-        q_map_1['torso_0_joint'] = -1.56;
-    else:
-        q_map_1['torso_0_joint'] = alpha;
-    
-    # Dalej to juz planowanie itp
-    planAndExecute(q_map_1)
+        # Wyznaczanie kata obrotu korpusu
+        if alpha >= 1.56:
+            q_map_1['torso_0_joint'] = 1.56;
+        elif alpha <= -1.56:
+            q_map_1['torso_0_joint'] = -1.56;
+        else:
+            q_map_1['torso_0_joint'] = alpha;
+
+        posX = T_B_Table.p.x() - 0.27*math.cos(alpha) - z*math.cos(alpha) 
+        posY = T_B_Table.p.y() - 0.27*math.sin(alpha) - z*math.sin(alpha)
+        return [posX, posY, alpha]
+
+    (posX, posY, alpha) = calculatePosition(New_Table, Table_x, Table_y) 
 
     print "Creating a virtual object attached to gripper..."
 
@@ -298,19 +312,19 @@ if __name__ == "__main__":
         'right_HandFingerThreeKnuckleTwoLink',
         'right_HandFingerThreeKnuckleThreeLink']
 
-    print "Publishing the attached object marker on topic /attached_objects"
-    pub = MarkerPublisherThread(object1)
-    pub.start()
+    #print "Publishing the attached object marker on topic /attached_objects"
+    #pub = MarkerPublisherThread(object1)
+    #pub.start()
 
-    print "Planning motion to the goal position using set of all joints..."
+    print "Planning motion to the goal position using set of all joints(object attached)..."
 
     print "Moving to valid position, using planned trajectory."
     goal_constraint_1 = qMapToConstraints(q_map_1, 0.04, group=velma.getJointGroup("impedance_joints"))
-    for i in range(5):
+    for i in range(20):
         rospy.sleep(0.5)
         js = velma.getLastJointState()
         print "Planning (try", i, ")..."
-        traj = p.plan(js[1], [goal_constraint_1], "impedance_joints", max_velocity_scaling_factor=0.15, planner_id="RRTConnect", attached_collision_objects=[object1])
+        traj = p.plan(js[1], [goal_constraint_1], "impedance_joints", max_velocity_scaling_factor=0.10, planner_id="RRTConnect", attached_collision_objects=[object1])
         if traj == None:
             continue
         print "Executing trajectory..."
@@ -325,12 +339,9 @@ if __name__ == "__main__":
     rospy.sleep(0.5)
     js = velma.getLastJointState()
     if not isConfigurationClose(q_map_1, js[1]):
-        #exitError(6)
+        exitError(6)
 
-        rospy.sleep(1.0)
-
-    posX = T_B_Table.p.x() - 0.27*math.cos(alpha) - z*math.cos(alpha) 
-    posY = T_B_Table.p.y() - 0.27*math.sin(alpha) - z*math.sin(alpha)
+    rospy.sleep(1.0)
 
     print "Ruch nadgarstka do miejsca w ktorym puszka ma zostac odlozona"
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, T_B_Table.p.z()+0.1 + 0.5))
@@ -346,7 +357,7 @@ if __name__ == "__main__":
         print "Puszka chwycona"
 
     print "Wycofywanie reki"
-    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX - 0.15*math.cos(alpha), posY- 0.15*math.sin(alpha), T_B_Table.p.z()+0.1+0.64))
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX - 0.15*math.cos(alpha), posY- 0.15*math.sin(alpha), New_Table.p.z()+0.1+0.24))
     moveWristToPos(frame)
 
     print "Powrot do pozycji poczatkowej"

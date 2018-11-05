@@ -297,13 +297,13 @@
     <state world_name='default'>
       <sim_time>13 358000000</sim_time>
       <real_time>0 0</real_time>
-      <wall_time>1541092265 682852965</wall_time>
+      <wall_time>1541422524 476906706</wall_time>
       <iterations>0</iterations>
       <model name='beer'>
-        <pose frame=''>0.910039 -0.705318 1.14664 0 -0 0</pose>
+        <pose frame=''>0.302909 -0.804443 1.14664 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.910039 -0.705318 1.26164 0 -0 0</pose>
+          <pose frame=''>0.302909 -0.804443 1.26164 0 -0 0</pose>
           <velocity>0 0 -0.0196 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -320,20 +320,20 @@
         </link>
       </model>
       <model name='table'>
-        <pose frame=''>1.15804 -0.555826 0 0 -0 1.41953</pose>
+        <pose frame=''>0.947829 1.35598 0 0 -0 1.32708</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.15804 -0.555826 0 0 -0 1.41953</pose>
+          <pose frame=''>0.947829 1.35598 0 0 -0 1.32708</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
       <model name='table_marble'>
-        <pose frame=''>-0.655993 1.83915 0.648 0 -0 0</pose>
+        <pose frame=''>0.510932 -2.04082 0.648 0 0 -1.01872</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.655993 1.83915 0.648 0 -0 0</pose>
+          <pose frame=''>0.510932 -2.04082 0.648 0 0 -1.01872</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -348,7 +348,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>-1.12452 -1.70332 2.99166 -0 1.12181 -2.85496</pose>
+        <pose frame=''>-5.19338 1.01397 6.82294 0 0.729804 -0.319812</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
@@ -357,7 +357,7 @@
       <link name='link'>
         <pose frame=''>0 0 0.115 0 -0 0</pose>
         <inertial>
-          <mass>0.39</mass>
+          <mass>0.2</mass>
           <inertia>
             <ixx>0.00058</ixx>
             <ixy>0</ixy>

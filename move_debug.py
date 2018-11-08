@@ -10,6 +10,7 @@ from threading import Thread
 from velma_common import *
 from rcprg_planner import *
 from rcprg_ros_utils import MarkerPublisher, exitError
+from functions import *
 
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject
 from shape_msgs.msg import SolidPrimitive
@@ -49,6 +50,8 @@ class MarkerPublisherThread:
         self.thread.join()
 
 
+# Planowanie oraz wykonuje ruch do zadanej pozycji stawow
+# q_dest - slownik zawierajacy pozycje zadane poszczegolnych stawow
 def planAndExecute(q_dest):
     """!
     Fukcja planuje oraz wykonuje ruch do zadanej pozycji stawow
@@ -155,7 +158,7 @@ def planAndExecuteAttached(q_map):
         print "Nie udalo sie zaplanowac ruchu do pozycji docelowej, puszka nie zostala odlozona."
         exitError(6)
 
-
+# Przelaczanie robota do trybu cart_imp
 def switchToCartImp():
     """!
     Fukcja przelacza robota do trybu cart_imp.
@@ -173,6 +176,7 @@ def switchToCartImp():
         exitError(3)
 
 
+# Ruch nadgarstka do zadanej pozycji, T_B_Trd = PyKDL.Frame (przeksztalcenie wzgledem bazy robota)
 def moveWristToPos(T_B_Trd):
     """!
     Ruch nadgarstka do zadanej pozycji.
@@ -216,7 +220,10 @@ def checkIfStillGrabbed(dest_conf):
         planAndExecute(q_map_starting)
         exitError(15)
 
-
+# Wyznaczanie pozycji do ktorej ma zostac wykonany ruch w celu odlozenia puszki na drugim stole
+# oraz wyznaczanie kata obrotu korpusu tak by byl on ustawiony przodem do drugiego stolu
+# T_B_Table - pozycja stolu
+# x, y - wymiary stolu
 def calculatePosition(T_B_Table, x, y, z):
     """!
     Funkcja wyznacza pozycje do ktorej ma zostac wykonany ruch w celu odlozenia puszki na drugim stole.
@@ -334,6 +341,7 @@ if __name__ == "__main__":
     print "Planning motion to the starting position using set of all joints..."
     planAndExecute(q_map_starting)
 
+
     print "Pobieranie pozycji puszki oraz wyznaczanie kata obrotu"
     T_B_Beer = velma.getTf("B", "beer")
 
@@ -344,10 +352,19 @@ if __name__ == "__main__":
     else:                    # Przestrzen za robotem
         angle = math.copysign(1.56, T_B_Beer.p.y())
         alpha = math.copysign(math.pi, T_B_Beer.p.y()) + math.atan(T_B_Beer.p.y() / T_B_Beer.p.x())
-    q_map_1['torso_0_joint'] = angle  # ustawianie docelowego kata obrotu korpusu
+
+
+    q_map_1['torso_0_joint'] = angle  # slownik ustawimay torso na 0
+
+    getch = Getch()
+    print "Pess any key to continue..."
+    getch()
 
     print "Planning motion to the goal position using set of all joints..."
     planAndExecute(q_map_1)  # Ustawianie sie przodem do puszki z jednoczesnym podnoszeniem prawej reki nad stoly
+
+    print "Pess any key to continue..."
+    getch()
 
     print "Przygotowanie prawej reki do chwytu"
     dest_q = [0, 0, 0, 0]
@@ -358,6 +375,7 @@ if __name__ == "__main__":
     if not isHandConfigurationClose(velma.getHandRightCurrentConfiguration(), dest_q):
         exitError(11)
 
+
     print "Switch to cart_imp mode..."
     switchToCartImp()
 
@@ -367,12 +385,21 @@ if __name__ == "__main__":
     posY = T_B_Beer.p.y() - 0.275 * math.sin(alpha)
     posZ = T_B_Beer.p.z() + 0.12
 
+    print "Pess any key to continue..."
+    getch()
+
     print "Ruch do puszki..."
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle), PyKDL.Vector(posX, posY, posZ))
     moveWristToPos(frame)
 
+    print "Pess any key to continue..."
+    getch()
+
     print "Chwytanie puszki..."
     grabObject()
+
+    print "Pess any key to continue..."
+    getch()
 
     print "Podnoszenie puszki..."
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, angle),
@@ -380,7 +407,8 @@ if __name__ == "__main__":
     moveWristToPos(frame)
     checkIfStillGrabbed(dest_q)
 
-    print "Pobieranie pozycji drugiego stolu oraz wyznaczanie kata obrotu"
+
+    print "Pobieranie pozycji drugiego stolu"
     Table1 = velma.getTf("B", "table_1")
     Table2 = velma.getTf("B", "table_2")
     # Wybor stolu na ktory puszka ma zostac przeniesiona
@@ -399,16 +427,26 @@ if __name__ == "__main__":
     print "Wyznaczanie pozycji docelowej nadgarstka oraz kata obrotu bazy)"
     (posX, posY, posZ, alpha) = calculatePosition(New_Table, Table_x, Table_y, Table_z)
 
+    print "Pess any key to continue..."
+    getch()
+
     print "Planning motion to the goal position using set of all joints (with object attached)..."
     planAndExecuteAttached(q_map_1)
     checkIfStillGrabbed(dest_q)
 
+
     print "Switch to cart_imp mode..."
     switchToCartImp()
+
+    print "Pess any key to continue..."
+    getch()
 
     print "Ruch nadgarstka do miejsca w ktorym puszka ma zostac odlozona"
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
     moveWristToPos(frame)
+
+    print "Pess any key to continue..."
+    getch()
 
     print "Opuszczanie puszki"
     dest_q = [0, 0, 0, 0]
@@ -416,10 +454,16 @@ if __name__ == "__main__":
     if velma.waitForHandRight() != 0:
         exitError(10)
 
+    print "Pess any key to continue..."
+    getch()
+
     print "Wycofywanie reki"
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha),
                         PyKDL.Vector(posX - 0.15 * math.cos(alpha), posY - 0.15 * math.sin(alpha), posZ + 0.24))
     moveWristToPos(frame)
+
+    print "Pess any key to continue..."
+    getch()
 
     print "Powrot do pozycji poczatkowej"
     planAndExecute(q_map_starting)

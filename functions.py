@@ -1,20 +1,28 @@
 #!/usr/bin/env python2
 
-import roslib; roslib.load_manifest('velma_task_cs_ros_interface')
-import rospy
-import math
-import PyKDL
-from threading import Thread
 
-from velma_common import *
-from rcprg_planner import *
-from rcprg_ros_utils import MarkerPublisher, exitError
+class Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+    def __init__(self):
+            self.impl = GetchUnix()
 
-from moveit_msgs.msg import AttachedCollisionObject, CollisionObject
-from shape_msgs.msg import SolidPrimitive
-from geometry_msgs.msg import Pose
-from visualization_msgs.msg import Marker
-import tf_conversions.posemath as pm
-from move3 import velma
-from move3 import p
+    def __call__(self): return self.impl()
+
+
+class GetchUnix:
+    def __init__(self):
+        import tty, sys
+
+    def __call__(self):
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
 

@@ -49,16 +49,14 @@ class MarkerPublisherThread:
         self.thread.join()
 
 
-def planAndExecute(q_dest):
+def prepareGrippersForMove():
     """!
-    Fukcja planuje oraz wykonuje ruch do zadanej pozycji stawow
-
-    @param q_dest        slownik: Slownik  {nazwa_stawu:pozycja_docelowa} zawierajacy docelowe pozycje stawow.
+    Fukcja przygotowuje pralce robota poprzez ich skladanie, w celu ulatwienia zaplanowania trasy
+    oraz wykonania samego ruchu.
     """
-    print "Przygotowanie chwytakow do ruchu"
     dest_q = [90.0 / 180.0 * math.pi, 90.0 / 180.0 * math.pi, 90.0 / 180.0 * math.pi, 0]
-    velma.moveHandRight(dest_q, [2, 2, 2, 2], [2000, 2000, 2000, 2000], 1000, hold=True)
-    velma.moveHandLeft(dest_q, [2, 2, 2, 2], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [3, 3, 3, 3], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandLeft(dest_q, [3, 3, 3, 3], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
     if velma.waitForHandLeft() != 0:
@@ -69,17 +67,24 @@ def planAndExecute(q_dest):
     if not isHandConfigurationClose(velma.getHandLeftCurrentConfiguration(), dest_q):
         exitError(11)
 
+def planAndExecute(q_dest):
+    """!
+    Fukcja planuje oraz wykonuje ruch do zadanej pozycji stawow
+
+    @param q_dest        slownik: Slownik  {nazwa_stawu:pozycja_docelowa} zawierajacy docelowe pozycje stawow.
+    """
+
     goal_constraint = qMapToConstraints(q_dest, 0.01, group=velma.getJointGroup("impedance_joints"))
     for i in range(20):
         rospy.sleep(0.5)
         js = velma.getLastJointState()
         print "Planning (try", i, ")..."
         traj = p.plan(js[1], [goal_constraint], "impedance_joints", max_velocity_scaling_factor=0.4,
-                      max_acceleration_scaling_factor=0.4, planner_id="RRTConnect")
+                      max_acceleration_scaling_factor=0.3, planner_id="RRTConnect")
         if traj == None:
             continue
         print "Executing trajectory..."
-        if not velma.moveJointTraj(traj, start_time=0.5, position_tol=10.0/180.0*math.pi):
+        if not velma.moveJointTraj(traj, start_time=0.1, position_tol=10.0/180.0*math.pi):
             exitError(5)
         if velma.waitForJoint() == 0:
             break
@@ -136,12 +141,12 @@ def planAndExecuteAttached(q_map):
         rospy.sleep(0.5)
         js = velma.getLastJointState()
         print "Planning (try", i, ")..."
-        traj = p.plan(js[1], [goal_constraint_1], "impedance_joints", max_velocity_scaling_factor=0.15,
+        traj = p.plan(js[1], [goal_constraint_1], "impedance_joints", max_velocity_scaling_factor=0.4,
                       max_acceleration_scaling_factor=0.2, planner_id="RRTConnect", attached_collision_objects=[object1])
         if traj == None:
             continue
         print "Executing trajectory..."
-        if not velma.moveJointTraj(traj, start_time=0.5, position_tol=20.0/180.0 * math.pi):
+        if not velma.moveJointTraj(traj, start_time=0.1, position_tol=20.0/180.0 * math.pi):
             exitError(5)
         if velma.waitForJoint() == 0:
             break
@@ -179,8 +184,8 @@ def moveWristToPos(T_B_Trd):
 
     @param T_B_Trd      PyKDL.Frame: Pozycja nadgarstka robota wzgledem ukladu wspolrzednych bazy.
     """
-    if not velma.moveCartImpRight([T_B_Trd], [2], None, None, None, None,
-                                  PyKDL.Wrench(PyKDL.Vector(5, 5, 5), PyKDL.Vector(5, 5, 5)), start_time=0.5):
+    if not velma.moveCartImpRight([T_B_Trd], [1.5], None, None, None, None,
+                                  PyKDL.Wrench(PyKDL.Vector(5, 5, 5), PyKDL.Vector(5, 5, 5)), start_time=0.01):
         exitError(8)
     if velma.waitForEffectorRight() != 0:
         exitError(9)
@@ -191,7 +196,7 @@ def grabObject():
     Chwytanie obiektu.
     """
     dest_q = [80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 0]
-    velma.moveHandRight(dest_q, [1, 1, 1, 1], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [2, 2, 2, 2], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
     rospy.sleep(0.5)
@@ -331,6 +336,11 @@ if __name__ == "__main__":
     octomap = oml.getOctomap(timeout_s=5.0)
     p.processWorld(octomap)
 
+    # --------------------------------- END OF INIT -----------------------------------------
+
+    print "Przygotowanie chwytakow do ruchu"
+    prepareGrippersForMove()
+
     print "Planning motion to the starting position using set of all joints..."
     planAndExecute(q_map_starting)
 
@@ -351,7 +361,7 @@ if __name__ == "__main__":
 
     print "Przygotowanie prawej reki do chwytu"
     dest_q = [0, 0, 0, 0]
-    velma.moveHandRight(dest_q, [1, 1, 1, 1], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [4, 4, 4, 4], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
     rospy.sleep(0.5)
@@ -412,7 +422,7 @@ if __name__ == "__main__":
 
     print "Opuszczanie puszki"
     dest_q = [0, 0, 0, 0]
-    velma.moveHandRight(dest_q, [4, 4, 4, 4], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [1, 1, 1, 1], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
 
@@ -420,6 +430,9 @@ if __name__ == "__main__":
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha),
                         PyKDL.Vector(posX - 0.18 * math.cos(alpha), posY - 0.18 * math.sin(alpha), posZ + 0.28))
     moveWristToPos(frame)
+
+    print "Przygotowanie chwytakow do ruchu"
+    prepareGrippersForMove()
 
     print "Powrot do pozycji poczatkowej"
     planAndExecute(q_map_starting)

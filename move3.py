@@ -179,7 +179,7 @@ def moveWristToPos(T_B_Trd):
 
     @param T_B_Trd      PyKDL.Frame: Pozycja nadgarstka robota wzgledem ukladu wspolrzednych bazy.
     """
-    if not velma.moveCartImpRight([T_B_Trd], [1.5], None, None, None, None,
+    if not velma.moveCartImpRight([T_B_Trd], [2], None, None, None, None,
                                   PyKDL.Wrench(PyKDL.Vector(5, 5, 5), PyKDL.Vector(5, 5, 5)), start_time=0.5):
         exitError(8)
     if velma.waitForEffectorRight() != 0:
@@ -363,8 +363,8 @@ if __name__ == "__main__":
 
     # Wyliczanie pozycji nadgarstka (musi byc on nieco oddalony od obiektu chwytanego)
     print "Wyznaczanie pozycji docelowej chwytaka"
-    posX = T_B_Beer.p.x() - 0.275 * math.cos(alpha)
-    posY = T_B_Beer.p.y() - 0.275 * math.sin(alpha)
+    posX = T_B_Beer.p.x() - 0.27 * math.cos(alpha)
+    posY = T_B_Beer.p.y() - 0.27 * math.sin(alpha)
     posZ = T_B_Beer.p.z() + 0.12
 
     print "Ruch do puszki..."
@@ -412,13 +412,13 @@ if __name__ == "__main__":
 
     print "Opuszczanie puszki"
     dest_q = [0, 0, 0, 0]
-    velma.moveHandRight(dest_q, [3, 3, 3, 3], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [4, 4, 4, 4], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
 
     print "Wycofywanie reki"
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha),
-                        PyKDL.Vector(posX - 0.15 * math.cos(alpha), posY - 0.15 * math.sin(alpha), posZ + 0.24))
+                        PyKDL.Vector(posX - 0.18 * math.cos(alpha), posY - 0.18 * math.sin(alpha), posZ + 0.28))
     moveWristToPos(frame)
 
     print "Powrot do pozycji poczatkowej"

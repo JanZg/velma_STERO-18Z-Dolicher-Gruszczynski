@@ -297,13 +297,13 @@
     <state world_name='default'>
       <sim_time>13 358000000</sim_time>
       <real_time>0 0</real_time>
-      <wall_time>1540896107 740284517</wall_time>
+      <wall_time>1541768085 481566465</wall_time>
       <iterations>0</iterations>
       <model name='beer'>
-        <pose frame=''>0.706885 -0.284301 1.14664 0 -0 0</pose>
+        <pose frame=''>0.520466 -0.597811 1.14664 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.706885 -0.284301 1.26164 0 -0 0</pose>
+          <pose frame=''>0.520466 -0.597811 1.26164 0 -0 0</pose>
           <velocity>0 0 -0.0196 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -320,20 +320,20 @@
         </link>
       </model>
       <model name='table'>
-        <pose frame=''>0.9822 -0.529022 0 0 -0 1.41953</pose>
+        <pose frame=''>0.84101 -1.20639 0 0 -0 1.56925</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.9822 -0.529022 0 0 -0 1.41953</pose>
+          <pose frame=''>0.84101 -1.20639 0 0 -0 1.56925</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
       <model name='table_marble'>
-        <pose frame=''>-0.61243 1.70343 0.648 0 -0 0</pose>
+        <pose frame=''>1.51551 1.71654 0.648 0 0 -1.56958</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.61243 1.70343 0.648 0 -0 0</pose>
+          <pose frame=''>1.51551 1.71654 0.648 0 0 -1.56958</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -348,7 +348,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>0.464795 -2.44606 2.94688 -0 0.905807 1.44422</pose>
+        <pose frame=''>0.521807 0.061623 5.30589 0 1.54581 0.160222</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

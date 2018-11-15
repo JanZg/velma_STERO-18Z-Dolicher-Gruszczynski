@@ -119,6 +119,7 @@ if __name__ == "__main__":
             exitError(6)
 
     print "Switch to jnt_imp mode (no trajectory)..."
+    planAndExecute(q_map_starting)
     velma.moveJointImpToCurrentPos(start_time=0.2)
     error = velma.waitForJoint()
     if error != 0:

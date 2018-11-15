@@ -12,7 +12,7 @@ from rcprg_ros_utils import exitError
 
 def moveCloserToDoor(q_dest):
 
-    velma.moveJoint(q_dest, 3.0, start_time=0.1, position_tol=15.0/180.0*math.pi)
+    velma.moveJoint(q_dest, 3, start_time=0.01, position_tol=15.0/180.0*math.pi)
     error = velma.waitForJoint()
     if error != 0:
         print "The action should have ended without error, but the error code is", error
@@ -59,26 +59,47 @@ def switchToCartImp():
         exitError(3)
 
 
-def moveWristToPos(T_B_Trd):
+def moveWristToPos(T_B_Trd, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.05, 0.05, 0.05), PyKDL.Vector(0.05, 0.05, 0.05))):
     """!
     Ruch nadgarstka do zadanej pozycji.
 
     @param T_B_Trd      PyKDL.Frame: Pozycja nadgarstka robota wzgledem ukladu wspolrzednych bazy.
     """
     T_Wr_Gr = velma.getTf("Wr", "Gr")
-    if not velma.moveCartImpRight([T_B_Trd], [1.5], None, None, None, None,
-                                  PyKDL.Wrench(PyKDL.Vector(5, 5, 5), PyKDL.Vector(5, 5, 5)), start_time=0.01):
+    if not velma.moveCartImpRight([T_B_Trd], [move_time], None, None, None, None,
+                                  PyKDL.Wrench(PyKDL.Vector(0.001, 0.001, 0.001), PyKDL.Vector(0.001, 0.001, 0.001)),
+                                  start_time=0.01,
+                                  path_tol=tol,
+                                  ):
         exitError(8)
     if velma.waitForEffectorRight() != 0:
-        exitError(9)
+        if not velma.moveCartImpRightCurrentPos(start_time=0.01):
+            exitError(98)
+        return 0
+    else:
+        return 1
 
 
-def prepareGripper():
+def checkIfInContact(dest_conf):
+    """!
+    Fukcja sprawdza czy chwycony obiekt nie zostal opuszczony
+
+    @param dest_conf      tablcia: Tablica przechowujaca zadane pozycje kazdego z palcow chwytaka
+
+    """
+    if not isHandConfigurationClose(velma.getHandRightCurrentConfiguration(), dest_conf, tolerance=0.05):
+        print "OK!"
+    else:
+        print "HALO?! GDZIE JEST SZAFKA?!?!"
+        moveCloserToDoor(q_map_1)
+        moveCloserToDoor(q_map_starting)
+        exitError(15)
+
+def prepareGripper(dest_q):
     """!
     Przygotowywanie palcow do chwytu.
     """
-    dest_q = [80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 90.0 / 180.0 * math.pi]
-    velma.moveHandRight(dest_q, [2, 2, 2, 2], [2000, 2000, 2000, 2000], 1000, hold=True)
+    velma.moveHandRight(dest_q, [4, 4, 4, 4], [2000, 2000, 2000, 2000], 1000, hold=True)
     if velma.waitForHandRight() != 0:
         exitError(10)
     rospy.sleep(0.5)
@@ -89,18 +110,22 @@ def calculatePosition(T_B_Cabinet, x, y, z):
     Funkcja wyznacza pozycje do ktorej ma zostac wykonany ruch w celu otwarcia drzwi szafki.
 
     @param T_B_Table    PyKDL.Frame: Pozycja szafki.
-    @param x            float: Szerokosc szafki
-    @param y            float: Dlugosc szafki
+    @param x            float: Wspolrzedna x punktu w ukladzie wspolrzednych szafki
+    @param y            float: Wspolrzedna y punktu w ukladzie wspolrzednych szafki
     @param z            float: Wysokosc szafki
 
     @return Zwraca pozycje docelowa chwytaka w ukladzie wspolrzednych bazy (parametry posX, posY, posZ)
     """
     (rotX, rotY, rotZ) = T_B_Cabinet.M.GetRPY()
 
-    posX = T_B_Cabinet.p.x() + math.cos(rotZ)*(x/2.0 + 0.2) - math.sin(rotZ)*0.15
-    posY = T_B_Cabinet.p.y() + math.sin(rotZ)*(x/2.0 + 0.2) + math.cos(rotZ)*0.15
-    posZ = T_B_Cabinet.p.z() + z/2.0
-    alpha = rotZ
+    posX = T_B_Cabinet.p.x() + math.cos(rotZ)*x - math.sin(rotZ)*y
+    posY = T_B_Cabinet.p.y() + math.sin(rotZ)*x + math.cos(rotZ)*y
+    posZ = T_B_Cabinet.p.z() + z/2.0 - 0.23
+    alpha = - math.pi + rotZ
+
+    if alpha < -math.pi:
+        alpha = 2*math.pi + alpha
+
     return [posX, posY, posZ, alpha]
 
 
@@ -161,16 +186,66 @@ if __name__ == "__main__":
 
     print "Pobieranie pozycji szafki"
     T_B_Cabinet = velma.getTf("B", "cabinet_door")
+    width = 0.6; length = 0.3; height = 0.7
 
-    print "Wyznaczanie pozycji docelowej"
-    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.6, 0.3, 0.7)
+    # Wyznaczanie kata obrotu korpusu oraz docelowego obrotu nadgarstka
+    if T_B_Cabinet.p.x() > 0:   # Przestrzen przed robotem
+        q_map_1['torso_0_joint'] = math.atan(T_B_Cabinet.p.y() / T_B_Cabinet.p.x()) # Obrot korpusu
+    else:                    # Przestrzen za robotem
+        q_map_1['torso_0_joint'] = math.copysign(1.56, T_B_Cabinet.p.y())
 
-    print "Ruch w poblize szafki"
+    print "Ustawianie sie w kierunku szafki"
     moveCloserToDoor(q_map_1)
 
     print "Przygotowywanie chwytu"
-    prepareGripper()
+    q = [80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 180.0 / 180.0 * math.pi]
+    prepareGripper(q)
 
+    print "Ruch w strone prawych drzwi"
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.50, 0.15, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    moveWristToPos(frame, move_time=2)
+
+    print "Wykrywanie drzwi szafki"
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.3, 0.15, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    if (moveWristToPos(frame, move_time=4)):
+        print "HALO?! GDZIE JEST SZAFKA?!?!"
+        moveCloserToDoor(q_map_1)
+        moveCloserToDoor(q_map_starting)
+    else:
+        print "OK!"
+
+    print "Wyjscie z kolizji"
+    Wrist_pos = velma.getTf("B", "Wr")
+    # Wyznaczanie pozycji nadgarstka w ukladzie wspolrzednych szafki
+    collX = -(Wrist_pos.p.x()- T_B_Cabinet.p.x())*math.cos(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y())*math.sin(alpha)
+    collY =  (Wrist_pos.p.x()- T_B_Cabinet.p.x()) * math.sin(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y()) * math.cos(alpha)
+    print posX, posY
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.02, collY, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    moveWristToPos(frame, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+
+
+    #q = [math.pi/2.0, math.pi/2.0, math.pi/2.0, math.pi]
+    #prepareGripper(q)
+
+    print "Ruch w kierunku uchwytu"
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.02, collY - 0.25, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    if (moveWristToPos(frame, move_time=4)):
+        print "HALO?! GDZIE JEST UCHWYT?!?!"
+        moveCloserToDoor(q_map_1)
+        moveCloserToDoor(q_map_starting)
+    else:
+        print "OK!"
+
+    print "Wyrownanie do uchwytu"
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.02, 0.0, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    moveWristToPos(frame, move_time=2, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+
+    print "Otwieranie i aproksymacja promienia drzwi szadki"
 
 
     exitError(0)

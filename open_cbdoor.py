@@ -278,7 +278,7 @@ if __name__ == "__main__":
 
 
 # ----------------------- SEKCJA EKSPERYMENTALNA ---------------------------------
-"""
+    """
     print oldX, oldY
     r = (math.pow(newX - oldX, 2) + math.pow(newY - oldY, 2)) / (newY - oldY)
     print r
@@ -298,5 +298,5 @@ if __name__ == "__main__":
                                                       y_0 - (r_wrist + 0.1) * math.cos(beta), 0.7)
         frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha + beta), PyKDL.Vector(posX, posY, posZ))
         moveWristToPos(frame, move_time=2, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
-"""
+    """
     exitError(0)

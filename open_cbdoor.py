@@ -12,7 +12,7 @@ from rcprg_ros_utils import exitError
 
 def moveCloserToDoor(q_dest):
 
-    velma.moveJoint(q_dest, 3, start_time=0.01, position_tol=15.0/180.0*math.pi)
+    velma.moveJoint(q_dest, 2, start_time=0.01, position_tol=15.0/180.0*math.pi)
     error = velma.waitForJoint()
     if error != 0:
         print "The action should have ended without error, but the error code is", error
@@ -47,7 +47,7 @@ def switchToCartImp():
     Fukcja przelacza robota do trybu cart_imp.
 
     """
-    if not velma.moveCartImpRightCurrentPos(start_time=0.2):
+    if not velma.moveCartImpRightCurrentPos(start_time=0.01):
         exitError(8)
     if velma.waitForEffectorRight() != 0:
         exitError(9)
@@ -59,7 +59,7 @@ def switchToCartImp():
         exitError(3)
 
 
-def moveWristToPos(T_B_Trd, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.05, 0.05, 0.05), PyKDL.Vector(0.05, 0.05, 0.05))):
+def moveWristToPos(T_B_Trd, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.04, 0.04, 0.04), PyKDL.Vector(0.04, 0.04, 0.04))):
     """!
     Ruch nadgarstka do zadanej pozycji.
 
@@ -67,7 +67,7 @@ def moveWristToPos(T_B_Trd, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.05, 0.05
     """
     T_Wr_Gr = velma.getTf("Wr", "Gr")
     if not velma.moveCartImpRight([T_B_Trd], [move_time], None, None, None, None,
-                                  PyKDL.Wrench(PyKDL.Vector(0.001, 0.001, 0.001), PyKDL.Vector(0.001, 0.001, 0.001)),
+                                  PyKDL.Wrench(PyKDL.Vector(5, 5, 5), PyKDL.Vector(5, 5, 5)),
                                   start_time=0.01,
                                   path_tol=tol,
                                   ):
@@ -79,21 +79,22 @@ def moveWristToPos(T_B_Trd, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.05, 0.05
     else:
         return 1
 
+def makeWrench(lx,ly,lz,rx,ry,rz):
+    return PyKDL.Wrench(PyKDL.Vector(lx,ly,lz), PyKDL.Vector(rx,ry,rz))
 
-def checkIfInContact(dest_conf):
+def changeImpedance(lx,ly,lz,rx,ry,rz):
     """!
     Fukcja sprawdza czy chwycony obiekt nie zostal opuszczony
 
     @param dest_conf      tablcia: Tablica przechowujaca zadane pozycje kazdego z palcow chwytaka
 
     """
-    if not isHandConfigurationClose(velma.getHandRightCurrentConfiguration(), dest_conf, tolerance=0.05):
-        print "OK!"
-    else:
-        print "HALO?! GDZIE JEST SZAFKA?!?!"
-        moveCloserToDoor(q_map_1)
-        moveCloserToDoor(q_map_starting)
-        exitError(15)
+
+    if not velma.moveCartImpRight(None, None, None, None, [makeWrench(lx, ly, lz, rx, ry, rz)], [2], PyKDL.Wrench(PyKDL.Vector(5,5,5), PyKDL.Vector(5,5,5)), start_time=0.1):
+        exitError(16)
+    if velma.waitForEffectorRight() != 0:
+        exitError(17)
+    rospy.sleep(1)
 
 def prepareGripper(dest_q):
     """!
@@ -197,22 +198,31 @@ if __name__ == "__main__":
     print "Ustawianie sie w kierunku szafki"
     moveCloserToDoor(q_map_1)
 
+
+    switchToCartImp()
+
     print "Przygotowywanie chwytu"
     q = [80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 80.0 / 180.0 * math.pi, 180.0 / 180.0 * math.pi]
     prepareGripper(q)
 
+
     print "Ruch w strone prawych drzwi"
-    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.50, 0.15, 0.7)
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.50, 0.12, 0.7)
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    changeImpedance(1000, 1000, 1000, 150, 150, 150)
     moveWristToPos(frame, move_time=2)
 
+    print "Zmniejszenie impedancji"
+    changeImpedance(400,1000,1000,150,150,150)
+
     print "Wykrywanie drzwi szafki"
-    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.3, 0.15, 0.7)
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, 0.3, 0.12, 0.7)
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
     if (moveWristToPos(frame, move_time=4)):
         print "HALO?! GDZIE JEST SZAFKA?!?!"
         moveCloserToDoor(q_map_1)
         moveCloserToDoor(q_map_starting)
+        exitError(997)
     else:
         print "OK!"
 
@@ -220,23 +230,26 @@ if __name__ == "__main__":
     Wrist_pos = velma.getTf("B", "Wr")
     # Wyznaczanie pozycji nadgarstka w ukladzie wspolrzednych szafki
     collX = -(Wrist_pos.p.x()- T_B_Cabinet.p.x())*math.cos(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y())*math.sin(alpha)
-    collY =  (Wrist_pos.p.x()- T_B_Cabinet.p.x()) * math.sin(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y()) * math.cos(alpha)
+    collY = (Wrist_pos.p.x()- T_B_Cabinet.p.x()) * math.sin(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y()) * math.cos(alpha)
     print posX, posY
-    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.02, collY, 0.7)
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.01, collY, 0.7)
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
     moveWristToPos(frame, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
 
 
     #q = [math.pi/2.0, math.pi/2.0, math.pi/2.0, math.pi]
     #prepareGripper(q)
+    print "Zmiana impedancji"
+    changeImpedance(1000, 400, 1000, 150, 150, 150)
 
     print "Ruch w kierunku uchwytu"
-    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.02, collY - 0.25, 0.7)
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, collX + 0.01, collY - 0.25, 0.7)
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
     if (moveWristToPos(frame, move_time=4)):
         print "HALO?! GDZIE JEST UCHWYT?!?!"
         moveCloserToDoor(q_map_1)
         moveCloserToDoor(q_map_starting)
+        exitError(997)
     else:
         print "OK!"
 
@@ -245,7 +258,45 @@ if __name__ == "__main__":
     frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
     moveWristToPos(frame, move_time=2, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
 
-    print "Otwieranie i aproksymacja promienia drzwi szadki"
+    q = [math.pi/2.0, math.pi/2.0, math.pi/2.0, math.pi]
+    prepareGripper(q)
+
+    print "Zmiana impedancji"
+    changeImpedance(400, 100, 1000, 150, 150, 300)
+
+    print "Otwieranie i aproksymacja promienia drzwi szafki"
+    Wrist_pos = velma.getTf("B", "Wr")
+    oldX = -(Wrist_pos.p.x()- T_B_Cabinet.p.x())*math.cos(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y())*math.sin(alpha)
+    oldY = (Wrist_pos.p.x()- T_B_Cabinet.p.x()) * math.sin(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y()) * math.cos(alpha)
+    (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, oldX + 0.1, oldY, 0.7)
+    frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha), PyKDL.Vector(posX, posY, posZ))
+    moveWristToPos(frame, move_time=3, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+    rospy.sleep(1)
+    Wrist_pos = velma.getTf("B", "Wr")
+    newX = -(Wrist_pos.p.x()- T_B_Cabinet.p.x())*math.cos(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y())*math.sin(alpha)
+    newY = (Wrist_pos.p.x()- T_B_Cabinet.p.x()) * math.sin(alpha) - (Wrist_pos.p.y()-T_B_Cabinet.p.y()) * math.cos(alpha)
 
 
+# ----------------------- SEKCJA EKSPERYMENTALNA ---------------------------------
+"""
+    print oldX, oldY
+    r = (math.pow(newX - oldX, 2) + math.pow(newY - oldY, 2)) / (newY - oldY)
+    print r
+
+    x_0, y_0 = oldX - 0.12, oldY + r
+    r_wrist = math.sqrt(math.pow(x_0 - oldX, 2) + math.pow(y_0 - oldY, 2))
+    print r_wrist
+    alpha_0 = math.asin((newY - oldY)/r_wrist)
+
+    print "alpha_0", alpha_0
+    print x_0, y_0
+
+    for i in range(0, 10, 1):
+        beta = alpha_0 + i*math.pi/20.0
+        print "beta", beta
+        (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, x_0 + (r_wrist + 0.1)*math.sin(beta),
+                                                      y_0 - (r_wrist + 0.1) * math.cos(beta), 0.7)
+        frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha + beta), PyKDL.Vector(posX, posY, posZ))
+        moveWristToPos(frame, move_time=2, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+"""
     exitError(0)

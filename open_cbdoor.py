@@ -290,16 +290,12 @@ if __name__ == "__main__":
     kat_otwarcia = math.asin((newX - oldX)/r)
     kat_staly = math.asin(0.27/r_wrist)
 
-    print "alpha_0"
-    print x_0, y_0
-
-    for i in range(0, 10, 1):
-        beta = kat_otwarcia + i*(math.pi/2.0)/8.0
+    for i in range(0, 12, 1):
+        beta = kat_otwarcia + i*(math.pi/2.0)/12.0
         print "beta", beta
         (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, x_0 + (r_wrist)*math.sin(beta + kat_staly),
                                                       y_0 - (r_wrist) * math.cos(beta + kat_staly), 0.7)
-        frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha + beta), PyKDL.Vector(posX, posY, posZ))
-        print (x_0 + (r + 0.03)*math.sin(beta)), (y_0 - (r + 0.03) * math.cos(beta))
-        moveWristToPos(frame, move_time=1, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+        frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, ((alpha + beta) if (alpha + beta < math.pi/2.0) else (math.pi/2.0))), PyKDL.Vector(posX, posY, posZ))
+        moveWristToPos(frame, move_time=0.7, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
     
     exitError(0)

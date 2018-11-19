@@ -278,25 +278,28 @@ if __name__ == "__main__":
 
 
 # ----------------------- SEKCJA EKSPERYMENTALNA ---------------------------------
-    """
+    
     print oldX, oldY
     r = (math.pow(newX - oldX, 2) + math.pow(newY - oldY, 2)) / (newY - oldY)
     print r
-
-    x_0, y_0 = oldX - 0.12, oldY + r
-    r_wrist = math.sqrt(math.pow(x_0 - oldX, 2) + math.pow(y_0 - oldY, 2))
+    
+    x_0 = oldX - 0.27
+    y_0 = oldY + r
+    r_wrist = math.sqrt(math.pow(0.27, 2) + math.pow(r, 2))
     print r_wrist
-    alpha_0 = math.asin((newY - oldY)/r_wrist)
+    kat_otwarcia = math.asin((newX - oldX)/r)
+    kat_staly = math.asin(0.27/r_wrist)
 
-    print "alpha_0", alpha_0
+    print "alpha_0"
     print x_0, y_0
 
     for i in range(0, 10, 1):
-        beta = alpha_0 + i*math.pi/20.0
+        beta = kat_otwarcia + i*(math.pi/2.0)/8.0
         print "beta", beta
-        (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, x_0 + (r_wrist + 0.1)*math.sin(beta),
-                                                      y_0 - (r_wrist + 0.1) * math.cos(beta), 0.7)
+        (posX, posY, posZ, alpha) = calculatePosition(T_B_Cabinet, x_0 + (r_wrist)*math.sin(beta + kat_staly),
+                                                      y_0 - (r_wrist) * math.cos(beta + kat_staly), 0.7)
         frame = PyKDL.Frame(PyKDL.Rotation.RPY(0, 0, alpha + beta), PyKDL.Vector(posX, posY, posZ))
-        moveWristToPos(frame, move_time=2, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
-    """
+        print (x_0 + (r + 0.03)*math.sin(beta)), (y_0 - (r + 0.03) * math.cos(beta))
+        moveWristToPos(frame, move_time=1, tol=PyKDL.Twist(PyKDL.Vector(0.2, 0.2, 0.2), PyKDL.Vector(0.2, 0.2, 0.2)))
+    
     exitError(0)
